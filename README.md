@@ -10,8 +10,8 @@ certificate certificate rotation with cert-manager
 
 ```hcl
 module "linkerd2" {
-    source  = "GaruGaru/module/linkerd2"
-    version = "0.0.1"
+    source  = "GaruGaru/linkerd2/kubernetes"
+    version = "0.0.2"
 
     kube_config_path = "<kube-config.yml>"
 

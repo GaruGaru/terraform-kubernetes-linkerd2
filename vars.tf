@@ -58,6 +58,12 @@ variable "enable_tracing" {
   description = "deploy and configure tracing stack (jager with opencensus collector)"
 }
 
+variable "controller_replicas" {
+  type = number
+  default = null
+  description = "replica count for linkerd controller"
+}
+
 variable "proxy_resource_request_cpu" {
   type = string
   default = null

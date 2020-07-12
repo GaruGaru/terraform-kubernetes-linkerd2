@@ -14,7 +14,7 @@ locals {
 
   enablePodAntiAffinity = var.ha
 
-  controller_replicas = var.ha ? 3 : 1
+  controller_replicas = var.ha ? coalesce(var.controller_replicas, 3) : coalesce(var.controller_replicas, 1)
 
   proxy_resource_request_cpu = var.ha ? coalesce(var.proxy_resource_request_cpu, "100m") : ""
   proxy_resource_limit_cpu = var.ha ? coalesce(var.proxy_resource_limit_cpu, "1") : ""
@@ -37,8 +37,7 @@ locals {
 
 }
 
-# thanks to https://www.devopsfu.com/2020/01/17/automating-linkerd-installation-in-terraform/
-
+# source https://www.devopsfu.com/2020/01/17/automating-linkerd-installation-in-terraform/
 resource "tls_private_key" "trustanchor_key" {
   algorithm = "ECDSA"
   ecdsa_curve = "P256"
@@ -91,6 +90,21 @@ resource "tls_locally_signed_cert" "issuer_cert" {
   ]
 }
 
+resource "kubernetes_secret" "ca-issuer-secret" {
+  metadata {
+    name = "linkerd-identity-issuer"
+    namespace = kubernetes_namespace.linkerd.metadata.0.name
+  }
+
+  type = "kubernetes.io/tls"
+
+  data = {
+    "ca.crt" = tls_self_signed_cert.trustanchor_cert.cert_pem
+    "tls.crt" = tls_locally_signed_cert.issuer_cert.cert_pem
+    "tls.key" = tls_private_key.issuer_key.private_key_pem
+  }
+
+}
 
 resource "kubernetes_namespace" "linkerd" {
   metadata {
@@ -100,6 +114,7 @@ resource "kubernetes_namespace" "linkerd" {
     }
   }
 }
+
 resource "helm_release" "linkerd2" {
 
   chart = "linkerd2"
@@ -254,23 +269,9 @@ resource "helm_release" "linkerd2" {
   ]
 }
 
-resource "kubernetes_secret" "ca-issuer-secret" {
-  metadata {
-    name = "linkerd-identity-issuer"
-    namespace = kubernetes_namespace.linkerd.metadata.0.name
-  }
 
-  type = "kubernetes.io/tls"
-
-  data = {
-    "ca.crt" = tls_self_signed_cert.trustanchor_cert.cert_pem
-    "tls.crt" = tls_locally_signed_cert.issuer_cert.cert_pem
-    "tls.key" = tls_private_key.issuer_key.private_key_pem
-  }
-
-}
-
-
+// The official kubernetes provider doesn't support CRD creation so this ugly workaround is needed
+// we have to wait for stable release of https://github.com/hashicorp/terraform-provider-kubernetes-alpha
 module "cert-manager-linkerd-cert" {
   source = "./modules/k8s-apply"
   kubeconfig = var.kube_config_path
@@ -284,6 +285,7 @@ module "cert-manager-linkerd-cert" {
     kubernetes_secret.ca-issuer-secret.id
   ]
 }
+
 
 resource "local_file" "linkerd-cert-issuer-crd" {
   filename = "${path.module}/manifests/linkerd-cert-issuer.yml"
