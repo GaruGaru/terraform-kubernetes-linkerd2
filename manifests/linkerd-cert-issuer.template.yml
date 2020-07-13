@@ -5,4 +5,4 @@ metadata:
   namespace: ${namespace}
 spec:
   ca:
-    secretName: linkerd-trust-anchor
+    secretName: linkerd-identity-issuer
