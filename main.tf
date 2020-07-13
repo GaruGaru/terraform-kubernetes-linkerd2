@@ -107,8 +107,7 @@ resource "kubernetes_secret" "ca-issuer-secret" {
 
   data = {
     "ca.crt" = tls_self_signed_cert.trustanchor_cert.cert_pem
-    "tls.crt" = tls_locally_signed_cert.issuer_cert.cert_pem
-    "tls.key" = tls_private_key.issuer_key.private_key_pem
+    "ca.key" = tls_private_key.trustanchor_key.private_key_pem
   }
 
 }
