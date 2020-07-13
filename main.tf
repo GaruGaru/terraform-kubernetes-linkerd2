@@ -290,7 +290,8 @@ module "cert-manager-linkerd-cert" {
 resource "local_file" "linkerd-cert-issuer-crd" {
   filename = "${path.module}/manifests/linkerd-cert-issuer.yml"
   content = templatefile("${path.module}/manifests/linkerd-cert-issuer.template.yml", {
-    namespace = kubernetes_namespace.linkerd.metadata.0.name
+    namespace = kubernetes_namespace.linkerd.metadata.0.name,
+    secret = kubernetes_secret.ca-issuer-secret.metadata.0.name
   })
 }
 
