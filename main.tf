@@ -93,12 +93,13 @@ resource "tls_locally_signed_cert" "issuer_cert" {
 resource "kubernetes_secret" "ca-issuer-secret" {
   lifecycle {
     ignore_changes = [
-      data, metadata
+      data,
+      metadata
     ]
   }
 
   metadata {
-    name = "linkerd-identity-issuer"
+    name = "linkerd-trust-anchor"
     namespace = kubernetes_namespace.linkerd.metadata.0.name
   }
 
