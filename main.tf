@@ -213,7 +213,7 @@ resource "helm_release" "linkerd2" {
   // Controller configuration
 
   set {
-    name = "global.controllerReplicas"
+    name = "controllerReplicas"
     value = local.controller_replicas
   }
 
