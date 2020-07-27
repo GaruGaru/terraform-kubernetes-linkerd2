@@ -151,7 +151,7 @@ resource "helm_release" "linkerd2" {
   }
 
   set {
-    name = "global.grafana.enabled"
+    name = "grafana.enabled"
     value = var.enable_grafana
   }
 
