@@ -67,7 +67,7 @@ resource "kubernetes_secret" "ca-issuer-secret" {
 }
 
 resource "kubernetes_manifest" "linkerd_certificate_issuer" {
-  provider = "kubernetes-alpha"
+  provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1alpha2"
     "kind"       = "Issuer"
@@ -81,11 +81,10 @@ resource "kubernetes_manifest" "linkerd_certificate_issuer" {
       }
     }
   }
-
 }
 
 resource "kubernetes_manifest" "linkerd_certificate" {
-  provider = "kubernetes-alpha"
+  provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1alpha2"
     "kind"       = "Certificate"

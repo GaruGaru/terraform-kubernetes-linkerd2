@@ -21,6 +21,11 @@ variable "helm_release_name" {
   default = "linkerd"
 }
 
+variable "helm_release_values" {
+  type = list(string)
+  default = []
+}
+
 variable "linkerd_version" {
   type    = string
   default = "2.9.2"
