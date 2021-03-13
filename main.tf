@@ -24,15 +24,19 @@ resource "helm_release" "linkerd2" {
     name  = "installNamespace"
     value = "false"
   }
+  set {
+    name  = "namespace"
+    value = kubernetes_namespace.linkerd.metadata.0.name
+  }
 
   set {
-    name  = "global.namespace"
+    name  = "controlPlaneTracingNamespace"
     value = kubernetes_namespace.linkerd.metadata.0.name
   }
 
   // Certificates configuration
   set {
-    name  = "global.identityTrustAnchorsPEM"
+    name  = "identityTrustAnchorsPEM"
     value = tls_self_signed_cert.trustanchor_cert.cert_pem
   }
 
@@ -58,7 +62,7 @@ resource "helm_release" "linkerd2" {
 
 
 resource "helm_release" "linkerd2-viz" {
-  chart            = "linkerd2-viz"
+  chart            = "linkerd-viz"
   repository       = var.helm_repository
   version          = var.linkerd_chart_version
   namespace        = kubernetes_namespace.linkerd.metadata.0.name
