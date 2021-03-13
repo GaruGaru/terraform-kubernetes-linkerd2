@@ -56,3 +56,37 @@ resource "helm_release" "linkerd2" {
   ]
 }
 
+
+resource "helm_release" "linkerd2-viz" {
+  chart = "linkerd2-viz"
+  repository = var.helm_repository
+  version = var.linkerd_version
+  namespace = kubernetes_namespace.linkerd.metadata.0.name
+  name = "${var.helm_release_name}-viz"
+  create_namespace = false
+
+  values = coalesce([
+    file("${path.module}/charts/linkerd-viz/values.yml"),
+    file("${path.module}/charts/linkerd-viz/values-ha.yml"),
+  ], var.helm_release_viz_values)
+
+  set {
+    name = "installNamespace"
+    value = "false"
+  }
+
+  set {
+    name = "linkerdNamespace"
+    value = kubernetes_namespace.linkerd.metadata.0.name
+  }
+
+  set {
+    name = "linkerdNamespace"
+    value = kubernetes_namespace.linkerd.metadata.0.name
+  }
+
+  depends_on = [
+    kubernetes_secret.ca-issuer-secret
+  ]
+}
+
