@@ -22,24 +22,24 @@ variable "helm_release_name" {
 }
 
 variable "helm_release_values" {
-  type = list(string)
+  type    = list(string)
   default = []
 }
 
 variable "helm_release_viz_values" {
-  type = list(string)
+  type    = list(string)
   default = []
 }
 
-variable "linkerd_version" {
+variable "linkerd_chart_version" {
   type    = string
-  default = "2.9.2"
+  default = "2.10.0"
 }
 
 variable "trust_anchor_certificate_validity_period_hours" {
-  type    = number
-  default = 87600
+  type = number
   # 10 years
+  default     = 87600
   description = "duration for the trust anchor certificate in hours (the certificate must be rotated manually after the expiration)"
 }
 
