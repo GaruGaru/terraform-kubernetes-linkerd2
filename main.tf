@@ -42,22 +42,20 @@ resource "helm_release" "linkerd2" {
 
   set {
     name  = "identity.issuer.crtExpiry"
-    value = tls_locally_signed_cert.issuer_cert.validity_end_time
+    value = tls_locally_signed_cert.issuer.validity_end_time
   }
 
   set {
     name  = "identity.issuer.tls.crtPEM"
-    value = tls_locally_signed_cert.issuer_cert.cert_pem
+    value = tls_locally_signed_cert.issuer.cert_pem
   }
 
   set {
     name  = "identity.issuer.tls.keyPEM"
-    value = tls_private_key.issuer_key.private_key_pem
+    value = tls_private_key.issuer.private_key_pem
   }
 
-  depends_on = [
-    kubernetes_secret.ca-issuer-secret
-  ]
+
 }
 
 
@@ -90,7 +88,7 @@ resource "helm_release" "linkerd2-viz" {
   }
 
   depends_on = [
-    kubernetes_secret.ca-issuer-secret
+    helm_release.linkerd2
   ]
 }
 
