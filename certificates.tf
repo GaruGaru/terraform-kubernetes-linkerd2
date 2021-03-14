@@ -1,14 +1,14 @@
 # source https://www.devopsfu.com/2020/01/17/automating-linkerd-installation-in-terraform/
 resource "tls_private_key" "trustanchor_key" {
-  algorithm = "ECDSA"
+  algorithm   = "ECDSA"
   ecdsa_curve = "P256"
 }
 
 resource "tls_self_signed_cert" "trustanchor_cert" {
-  key_algorithm = tls_private_key.trustanchor_key.algorithm
-  private_key_pem = tls_private_key.trustanchor_key.private_key_pem
+  key_algorithm         = tls_private_key.trustanchor_key.algorithm
+  private_key_pem       = tls_private_key.trustanchor_key.private_key_pem
   validity_period_hours = var.trust_anchor_certificate_validity_period_hours
-  is_ca_certificate = true
+  is_ca_certificate     = true
 
   subject {
     common_name = "identity.linkerd.cluster.local"
@@ -23,17 +23,17 @@ resource "tls_self_signed_cert" "trustanchor_cert" {
 }
 
 resource "tls_private_key" "issuer" {
-  algorithm = "ECDSA"
+  algorithm   = "ECDSA"
   ecdsa_curve = "P256"
 }
 
 resource "tls_private_key" "webhook" {
-  algorithm = "ECDSA"
+  algorithm   = "ECDSA"
   ecdsa_curve = "P256"
 }
 
 resource "tls_cert_request" "issuer" {
-  key_algorithm = tls_private_key.issuer.algorithm
+  key_algorithm   = tls_private_key.issuer.algorithm
   private_key_pem = tls_private_key.issuer.private_key_pem
 
   subject {
@@ -42,7 +42,7 @@ resource "tls_cert_request" "issuer" {
 }
 
 resource "tls_cert_request" "webhook" {
-  key_algorithm = tls_private_key.webhook.algorithm
+  key_algorithm   = tls_private_key.webhook.algorithm
   private_key_pem = tls_private_key.webhook.private_key_pem
 
   subject {
@@ -52,12 +52,12 @@ resource "tls_cert_request" "webhook" {
 
 
 resource "tls_locally_signed_cert" "issuer" {
-  cert_request_pem = tls_cert_request.issuer.cert_request_pem
-  ca_key_algorithm = tls_private_key.trustanchor_key.algorithm
-  ca_private_key_pem = tls_private_key.trustanchor_key.private_key_pem
-  ca_cert_pem = tls_self_signed_cert.trustanchor_cert.cert_pem
+  cert_request_pem      = tls_cert_request.issuer.cert_request_pem
+  ca_key_algorithm      = tls_private_key.trustanchor_key.algorithm
+  ca_private_key_pem    = tls_private_key.trustanchor_key.private_key_pem
+  ca_cert_pem           = tls_self_signed_cert.trustanchor_cert.cert_pem
   validity_period_hours = var.issuer_certificate_validity_period_hours
-  is_ca_certificate = true
+  is_ca_certificate     = true
 
   allowed_uses = [
     "crl_signing",
@@ -68,12 +68,12 @@ resource "tls_locally_signed_cert" "issuer" {
 }
 
 resource "tls_locally_signed_cert" "webhook" {
-  cert_request_pem = tls_cert_request.webhook.cert_request_pem
-  ca_key_algorithm = tls_private_key.trustanchor_key.algorithm
-  ca_private_key_pem = tls_private_key.trustanchor_key.private_key_pem
-  ca_cert_pem = tls_self_signed_cert.trustanchor_cert.cert_pem
+  cert_request_pem      = tls_cert_request.webhook.cert_request_pem
+  ca_key_algorithm      = tls_private_key.trustanchor_key.algorithm
+  ca_private_key_pem    = tls_private_key.trustanchor_key.private_key_pem
+  ca_cert_pem           = tls_self_signed_cert.trustanchor_cert.cert_pem
   validity_period_hours = var.issuer_certificate_validity_period_hours
-  is_ca_certificate = true
+  is_ca_certificate     = true
 
   allowed_uses = [
     "crl_signing",
@@ -88,9 +88,9 @@ resource "kubernetes_manifest" "linkerd_certificate_issuer" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Issuer"
+    "kind"       = "Issuer"
     "metadata" = {
-      "name" = "linkerd-trust-anchor"
+      "name"      = "linkerd-trust-anchor"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
@@ -106,25 +106,27 @@ resource "kubernetes_manifest" "linkerd_certificate" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Certificate"
+    "kind"       = "Certificate"
     "metadata" = {
-      "name" = "linkerd-identity-issuer"
+      "name"      = "linkerd-identity-issuer"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
       "commonName" = "identity.linkerd.cluster.local"
-      "dnsNames": [
+      "dnsNames" : [
         "identity.linkerd.cluster.local"
       ]
       "duration" = "48h"
-      "isCA" = true
+      "isCA"     = true
       "issuerRef" = {
         "kind" = "Issuer"
         "name" = kubernetes_manifest.linkerd_certificate_issuer.manifest.metadata.name
       }
-      "keyAlgorithm" = "ecdsa"
+      "privateKey" : {
+        "algorithm" : "ECDSA"
+      }
       "renewBefore" = "25h"
-      "secretName" = "linkerd-identity-issuer"
+      "secretName"  = "linkerd-identity-issuer"
       "usages" = [
         "cert sign",
         "crl sign",
@@ -138,14 +140,14 @@ resource "kubernetes_manifest" "linkerd_certificate" {
 
 resource "kubernetes_secret" "webhook-cert" {
   metadata {
-    name = "webhook-issuer-tls"
+    name      = "webhook-issuer-tls"
     namespace = kubernetes_namespace.linkerd.metadata.0.name
   }
 
   type = "kubernetes.io/tls"
 
   data = {
-    "ca.crt" = tls_self_signed_cert.trustanchor_cert.cert_pem
+    "ca.crt"  = tls_self_signed_cert.trustanchor_cert.cert_pem
     "tls.crt" = tls_locally_signed_cert.webhook.cert_pem
     "tls.key" = tls_private_key.webhook.private_key_pem
   }
@@ -155,9 +157,9 @@ resource "kubernetes_manifest" "linkerd_webhook_certificate_issuer" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Issuer"
+    "kind"       = "Issuer"
     "metadata" = {
-      "name" = "webhook-issuer"
+      "name"      = "webhook-issuer"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
@@ -172,23 +174,26 @@ resource "kubernetes_manifest" "linkerd_proxy_certificate" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Certificate"
+    "kind"       = "Certificate"
     "metadata" = {
-      "name" = "linkerd-proxy-injector"
+      "name"      = "linkerd-proxy-injector"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
       "commonName" = "linkerd-proxy-injector.linkerd.svc"
-      "dnsNames": ["linkerd-proxy-injector.linkerd.svc"]
+      "dnsNames" : [
+      "linkerd-proxy-injector.linkerd.svc"]
       "duration" = "24h"
-      "isCA" = false
+      "isCA"     = false
       "issuerRef" = {
         "kind" = "Issuer"
         "name" = kubernetes_manifest.linkerd_webhook_certificate_issuer.manifest.metadata.name
       }
-      "keyAlgorithm" = "ecdsa"
+      "privateKey" : {
+        "algorithm" : "ECDSA"
+      }
       "renewBefore" = "1h"
-      "secretName" = "linkerd-proxy-injector-k8s-tls"
+      "secretName"  = "linkerd-proxy-injector-k8s-tls"
       "usages" = [
         "server auth",
       ]
@@ -200,23 +205,26 @@ resource "kubernetes_manifest" "linkerd_validator_certificate" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Certificate"
+    "kind"       = "Certificate"
     "metadata" = {
-      "name" = "linkerd-sp-validator"
+      "name"      = "linkerd-sp-validator"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
       "commonName" = "linkerd-sp-validator.linkerd.svc"
-      "dnsNames": ["linkerd-sp-validator.linkerd.svc"]
+      "dnsNames" : [
+      "linkerd-sp-validator.linkerd.svc"]
       "duration" = "24h"
-      "isCA" = false
+      "isCA"     = false
       "issuerRef" = {
         "kind" = "Issuer"
         "name" = kubernetes_manifest.linkerd_webhook_certificate_issuer.manifest.metadata.name
       }
-      "keyAlgorithm" = "ecdsa"
+      "privateKey" : {
+        "algorithm" : "ECDSA"
+      }
       "renewBefore" = "1h"
-      "secretName" = "linkerd-sp-validator-k8s-tls"
+      "secretName"  = "linkerd-sp-validator-k8s-tls"
       "usages" = [
         "server auth",
       ]
@@ -228,23 +236,26 @@ resource "kubernetes_manifest" "linkerd_tap_certificate" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Certificate"
+    "kind"       = "Certificate"
     "metadata" = {
-      "name" = "tap"
+      "name"      = "tap"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
       "commonName" = "tap.linkerd.svc"
-      "dnsNames": ["tap.linkerd.svc"]
+      "dnsNames" : [
+      "tap.linkerd.svc"]
       "duration" = "24h"
-      "isCA" = false
+      "isCA"     = false
       "issuerRef" = {
         "kind" = "Issuer"
         "name" = kubernetes_manifest.linkerd_webhook_certificate_issuer.manifest.metadata.name
       }
-      "keyAlgorithm" = "ecdsa"
+      "privateKey" : {
+        "algorithm" : "ECDSA"
+      }
       "renewBefore" = "1h"
-      "secretName" = "tap-k8s-tls"
+      "secretName"  = "tap-k8s-tls"
       "usages" = [
         "server auth",
       ]
@@ -256,23 +267,26 @@ resource "kubernetes_manifest" "linkerd_tap_injector_certificate" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Certificate"
+    "kind"       = "Certificate"
     "metadata" = {
-      "name" = "linkerd-tap-injector"
+      "name"      = "linkerd-tap-injector"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
       "commonName" = "tap-injector.linkerd.svc"
-      "dnsNames": ["tap-injector.linkerd.svc"]
+      "dnsNames" : [
+      "tap-injector.linkerd.svc"]
       "duration" = "24h"
-      "isCA" = false
+      "isCA"     = false
       "issuerRef" = {
         "kind" = "Issuer"
         "name" = kubernetes_manifest.linkerd_webhook_certificate_issuer.manifest.metadata.name
       }
-      "keyAlgorithm" = "ecdsa"
+      "privateKey" : {
+        "algorithm" : "ECDSA"
+      }
       "renewBefore" = "1h"
-      "secretName" = "tap-injector-k8s-tls"
+      "secretName"  = "tap-injector-k8s-tls"
       "usages" = [
         "server auth",
       ]
@@ -284,23 +298,26 @@ resource "kubernetes_manifest" "linkerd_jaeger_injector_certificate" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
-    "kind" = "Certificate"
+    "kind"       = "Certificate"
     "metadata" = {
-      "name" = "jaeger-injector"
+      "name"      = "jaeger-injector"
       "namespace" = kubernetes_namespace.linkerd.metadata.0.name
     }
     "spec" = {
       "commonName" = "jaeger-injector.linkerd.svc"
-      "dnsNames": ["jaeger-injector.linkerd.svc"]
+      "dnsNames" : [
+      "jaeger-injector.linkerd.svc"]
       "duration" = "24h"
-      "isCA" = false
+      "isCA"     = false
       "issuerRef" = {
         "kind" = "Issuer"
         "name" = kubernetes_manifest.linkerd_webhook_certificate_issuer.manifest.metadata.name
       }
-      "keyAlgorithm" = "ecdsa"
+      "privateKey" : {
+        "algorithm" : "ECDSA"
+      }
       "renewBefore" = "1h"
-      "secretName" = "jaeger-injector-k8s-tls"
+      "secretName"  = "jaeger-injector-k8s-tls"
       "usages" = [
         "server auth",
       ]
